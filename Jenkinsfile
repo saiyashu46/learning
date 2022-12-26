@@ -2,24 +2,33 @@ pipeline {
     agent any
 
     stages {
-        stage('git checkout') {
+        
+        stage('Maven Build') {
             steps {
-                git branch: 'main', credentialsId: 'git-creds', url: 'https://github.com/saiyashu46/learning'
+                sh "mvn clean package"
             }
         }
-                stage('mvn package') {
+        
+        stage('Docker Build') {
             steps {
-                sh 'mvn clean package'
+                sh "docker build -t saiyashu46/learning:0.0.2 ."
             }
         }
-                stage('tomcat-checkout') {
+        stage('Docker Push') {
             steps {
-                sshagent(['tomcat-checkout']) {
-                    sh "scp -o StrictHostKeyChecking=no target/*war ec2-user@172.31.18.94:/opt/tomcat9/webapps"
-                    sh "ssh ec2-user@172.31.18.94 /opt/tomcat9/bin/shutdown.sh"
-                    sh "ssh ec2-user@172.31.18.94 /opt/tomcat9/bin/startup.sh"
+                withCredentials([string(credentialsId: 'docker-hub', variable: 'hubPass')]) {
+                    sh "docker login -u saiyashu46 -p ${hubPass}"
+                    sh "docker push saiyashu46/learning:0.0.2"
                 }
             }
         }
+        stage('Docker Deploy') {
+            steps {
+                sshagent(['docker-host']) {
+                    sh "ssh -o StrictHostKeyChecking=no  ec2-user@172.31.33.119 docker run -d -p 8080:8080 --name learning saiyashu46/learning:0.0.2"
+                }
+            }
+        }
+
     }
 }
