@@ -16,7 +16,7 @@ pipeline {
         }
         stage('Docker Push') {
             steps {
-                withCredentials([string(credentialsId: 'docker-hub', variable: 'hubPass')]) {
+                withCredentials([string(credentialsId: 'docker-hub-demo', variable: 'hubPass')]) {
                     sh "docker login -u saiyashu46 -p ${hubPass}"
                     sh "docker push saiyashu46/learning:0.0.2"
                 }
